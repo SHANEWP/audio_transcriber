@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Audio Transcription</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px; /* Add padding around the body */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        color: #333;
+      }
+      .container {
+        padding: 20px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .input-group {
+        margin: 15px 0;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #output {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+        text-align: left;
+      }
+      #downloadButton {
+        display: none; /* Hide the download button initially */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Audio Transcription</h1>
+      <div class="input-group">
+        <label for="fileInput">Select File(s):</label>
+        <input type="file" id="fileInput" multiple />
+      </div>
+      <div class="input-group">
+        <label for="directoryInput">Select Directory:</label>
+        <input type="file" id="directoryInput" webkitdirectory />
+      </div>
+      <button id="transcribeButton">Transcribe</button>
+      <div id="output"></div>
+      <a id="downloadButton" href="#" style="display: none" download="transcriptions.json">
+        <button>Download JSON</button>
+      </a>
+    </div>
+
+    <script>
+      document.getElementById('transcribeButton').addEventListener('click', async () => {
+        const files = document.getElementById('fileInput').files;
+        const directoryFiles = document.getElementById('directoryInput').files;
+        const outputDiv = document.getElementById('output');
+        const downloadButton = document.getElementById('downloadButton');
+
+        if (!files.length && !directoryFiles.length) {
+          outputDiv.textContent = 'Please select files or a directory to transcribe.';
+          return;
+        }
+
+        const formData = new FormData();
+        for (const file of files) {
+          formData.append('audioFiles', file);
+        }
+        for (const file of directoryFiles) {
+          formData.append('audioFiles', file);
+        }
+
+        try {
+          outputDiv.textContent = 'Transcribing...';
+
+          const response = await fetch('http://localhost:3000/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to transcribe files.');
+          }
+
+          const transcriptions = await response.json();
+          outputDiv.textContent = JSON.stringify(transcriptions, null, 2);
+
+          // Create a Blob for the transcriptions
+          const blob = new Blob([JSON.stringify(transcriptions, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+
+          // Set the download button's href to the blob URL
+          downloadButton.href = url;
+
+          // Make the download button visible
+          downloadButton.style.display = 'inline-block';
+        } catch (error) {
+          outputDiv.textContent = `Error: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>
